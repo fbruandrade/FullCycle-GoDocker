@@ -1,0 +1,45 @@
+name: Docker Image CI
+
+# on:
+#   push:
+#     branches: [ "main" ]
+#   pull_request:
+#     branches: [ "main" ]
+    
+on:
+  release:
+    types:
+      - released
+    branches: [ main ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile --tag fandrade/codeeducation:$(date +%s)
+      
+  build_and_push_release_go_docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)
+
+      - name: Build and push Docker images
+        uses: docker/build-push-action@v3.1.1
+        with:
+          path: .
+          username: ${{secrets.DOCKERHUB_USERNAME}}
+          password: ${{secrets.DOCKERHUB_PASSWORD}}
+          repository: fandrade/codeeducation
+          dockerfile: ./Dockerfile
+          tags: latest,${{ steps.get_version.outputs.VERSION }}
+          tag_with_ref: false
+          tag_with_sha: false
